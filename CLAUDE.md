@@ -39,3 +39,4 @@ If a skill conflicts with a general best practice, the skill wins.
 
 ## When Stuck or Ambiguous
 Ask before assuming. One clarifying question is better than building the wrong thing.
+

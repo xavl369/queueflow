@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
-vi.mock('../config/firebase.js', () => ({ db: {} }));
+vi.mock('../config/firebase.js', () => ({ db: {}, functions: {} }));
 
 const { mockRef, mockOnValue } = vi.hoisted(() => ({
   mockRef: vi.fn(),
@@ -12,6 +12,10 @@ const { mockRef, mockOnValue } = vi.hoisted(() => ({
 vi.mock('firebase/database', () => ({
   ref: mockRef,
   onValue: mockOnValue,
+}));
+
+vi.mock('firebase/functions', () => ({
+  httpsCallable: vi.fn(() => vi.fn().mockResolvedValue({})),
 }));
 
 import AdminPanel from './AdminPanel.jsx';
