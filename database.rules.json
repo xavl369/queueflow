@@ -1,0 +1,28 @@
+{
+  "rules": {
+    "events": {
+      "$eventId": {
+        ".read": true,
+        ".write": "auth != null"
+      }
+    },
+    "queue": {
+      "$eventId": {
+        ".read": "auth != null",
+        "$clientId": {
+          ".write": "root.child('events').child($eventId).child('status').val() === 'active'"
+        }
+      }
+    },
+    "admin": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "logs": {
+      "$eventId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "glitterbar-functions",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "node": "18" },
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^4.9.0",
+    "twilio": "^5.1.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": ["**/src/**/*.test.js"]
+  }
+}
