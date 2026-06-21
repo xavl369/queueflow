@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 .env.local
+.env.emulator
 firebase-debug.log
 firebase-debug.*.log
 .firebase/
@@ -10,3 +11,4 @@ functions/.env.local
 functions/.secret.local
 functions/node_modules/
 functions/lib/
+.claude/agents/

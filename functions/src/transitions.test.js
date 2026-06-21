@@ -1,17 +1,14 @@
-jest.mock('firebase-admin/database', () => ({
-  ref: jest.fn((db, path) => path ?? '__root__'),
-  get: jest.fn(),
-  update: jest.fn(),
-  runTransaction: jest.fn(),
-}));
-
 jest.mock('firebase-functions/v2/https', () => ({
   HttpsError: class HttpsError extends Error {
     constructor(code, message) { super(message); this.code = code; }
   },
 }));
 
-const { ref, get, update, runTransaction } = require('firebase-admin/database');
+jest.mock('./notifications', () => ({
+  sendChairReady: jest.fn().mockResolvedValue(undefined),
+  sendRegistrationConfirmation: jest.fn().mockResolvedValue(undefined),
+}));
+
 const {
   callNextClientHandler,
   markAttendingHandler,
@@ -19,7 +16,21 @@ const {
   markFinishedHandler,
 } = require('./transitions');
 
-const db = {};
+// ─── mock db factory ──────────────────────────────────────────────────────────
+
+const mockGet         = jest.fn();
+const mockUpdate      = jest.fn();
+const mockTransaction = jest.fn();
+
+function createDb() {
+  return {
+    ref: (path) => ({
+      get:         ()       => mockGet(path),
+      update:      (data)   => mockUpdate(path, data),
+      transaction: (updateFn) => mockTransaction(path, updateFn),
+    }),
+  };
+}
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -27,89 +38,118 @@ beforeEach(() => jest.clearAllMocks());
 
 describe('callNextClientHandler', () => {
   it('throws when event is not active', async () => {
-    get.mockResolvedValueOnce({ val: () => ({ status: 'inactive' }) });
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'inactive' }) });
     await expect(callNextClientHandler(db, 'evt-1', 1)).rejects.toThrow(/no está activo/);
   });
 
   it('throws when no clients are waiting', async () => {
-    get
+    const db = createDb();
+    mockGet
       .mockResolvedValueOnce({ val: () => ({ status: 'active' }) })
       .mockResolvedValueOnce({ val: () => null });
     await expect(callNextClientHandler(db, 'evt-1', 1)).rejects.toThrow(/No hay clientes/);
   });
 
   it('throws when chair is already occupied (transaction aborts)', async () => {
-    get
+    const db = createDb();
+    mockGet
       .mockResolvedValueOnce({ val: () => ({ status: 'active' }) })
       .mockResolvedValueOnce({ val: () => ({
         'c1': { name: 'Ana', status: 'waiting', turn_number: 1, priority: false },
       }) });
-    runTransaction.mockResolvedValue({ committed: false });
+    mockTransaction.mockResolvedValue({ committed: false });
     await expect(callNextClientHandler(db, 'evt-1', 1)).rejects.toThrow(/ya está ocupada/);
   });
 
   it('calls the priority client first', async () => {
-    get
+    const db = createDb();
+    mockGet
       .mockResolvedValueOnce({ val: () => ({ status: 'active' }) })
       .mockResolvedValueOnce({ val: () => ({
-        'c1': { name: 'Regular', status: 'waiting', turn_number: 1, priority: false },
+        'c1': { name: 'Regular',  status: 'waiting', turn_number: 1, priority: false },
         'c2': { name: 'Priority', status: 'waiting', turn_number: 5, priority: true },
       }) });
-    runTransaction.mockResolvedValue({ committed: true });
-    update.mockResolvedValue({});
+    mockTransaction.mockResolvedValue({ committed: true });
+    mockUpdate.mockResolvedValue({});
 
     const result = await callNextClientHandler(db, 'evt-1', 1);
 
     expect(result.clientId).toBe('c2');
-    expect(update).toHaveBeenCalledWith(
+    expect(mockUpdate).toHaveBeenCalledWith(
       'queue/evt-1/c2',
       expect.objectContaining({ status: 'called' })
     );
   });
 
   it('calls the lowest turn_number among regular clients', async () => {
-    get
+    const db = createDb();
+    mockGet
       .mockResolvedValueOnce({ val: () => ({ status: 'active' }) })
       .mockResolvedValueOnce({ val: () => ({
         'c3': { name: 'Third',  status: 'waiting', turn_number: 3, priority: false },
         'c1': { name: 'First',  status: 'waiting', turn_number: 1, priority: false },
         'c2': { name: 'Second', status: 'waiting', turn_number: 2, priority: false },
       }) });
-    runTransaction.mockResolvedValue({ committed: true });
-    update.mockResolvedValue({});
+    mockTransaction.mockResolvedValue({ committed: true });
+    mockUpdate.mockResolvedValue({});
 
     const result = await callNextClientHandler(db, 'evt-1', 1);
     expect(result.clientId).toBe('c1');
   });
 
   it('skips non-waiting clients', async () => {
-    get
+    const db = createDb();
+    mockGet
       .mockResolvedValueOnce({ val: () => ({ status: 'active' }) })
       .mockResolvedValueOnce({ val: () => ({
-        'c1': { name: 'Called',   status: 'called',   turn_number: 1, priority: false },
-        'c2': { name: 'Waiting',  status: 'waiting',  turn_number: 2, priority: false },
+        'c1': { name: 'Called',  status: 'called',  turn_number: 1, priority: false },
+        'c2': { name: 'Waiting', status: 'waiting', turn_number: 2, priority: false },
       }) });
-    runTransaction.mockResolvedValue({ committed: true });
-    update.mockResolvedValue({});
+    mockTransaction.mockResolvedValue({ committed: true });
+    mockUpdate.mockResolvedValue({});
 
     const result = await callNextClientHandler(db, 'evt-1', 1);
     expect(result.clientId).toBe('c2');
   });
 
   it('sets called_at timestamp on the client record', async () => {
-    get
+    const db = createDb();
+    mockGet
       .mockResolvedValueOnce({ val: () => ({ status: 'active' }) })
       .mockResolvedValueOnce({ val: () => ({
         'c1': { name: 'Ana', status: 'waiting', turn_number: 1, priority: false },
       }) });
-    runTransaction.mockResolvedValue({ committed: true });
-    update.mockResolvedValue({});
+    mockTransaction.mockResolvedValue({ committed: true });
+    mockUpdate.mockResolvedValue({});
 
     await callNextClientHandler(db, 'evt-1', 1);
 
-    expect(update).toHaveBeenCalledWith(
+    expect(mockUpdate).toHaveBeenCalledWith(
       'queue/evt-1/c1',
       expect.objectContaining({ 'timestamps/called_at': expect.any(Number) })
+    );
+  });
+
+  it('calls sendChairReady with correct args after state change', async () => {
+    const { sendChairReady } = require('./notifications');
+    const db = createDb();
+    mockGet
+      .mockResolvedValueOnce({ val: () => ({ status: 'active' }) })
+      .mockResolvedValueOnce({ val: () => ({
+        'c1': { name: 'Ana', phone: '6621234567', status: 'waiting', turn_number: 1, priority: false },
+      }) });
+    mockTransaction.mockResolvedValue({ committed: true });
+    mockUpdate.mockResolvedValue({});
+
+    await callNextClientHandler(db, 'evt-1', 1);
+
+    expect(sendChairReady).toHaveBeenCalledWith(
+      db,
+      'evt-1',
+      'c1',
+      expect.objectContaining({ name: 'Ana', phone: '6621234567' }),
+      1
     );
   });
 });
@@ -118,22 +158,25 @@ describe('callNextClientHandler', () => {
 
 describe('markAttendingHandler', () => {
   it('throws when client does not exist', async () => {
-    get.mockResolvedValueOnce({ val: () => null });
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => null });
     await expect(markAttendingHandler(db, 'evt-1', 'c1', 1)).rejects.toThrow(/no encontrado/);
   });
 
   it('throws on invalid transition (e.g. waiting -> attending)', async () => {
-    get.mockResolvedValueOnce({ val: () => ({ status: 'waiting' }) });
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'waiting' }) });
     await expect(markAttendingHandler(db, 'evt-1', 'c1', 1)).rejects.toThrow();
   });
 
   it('updates status to attending with timestamp', async () => {
-    get.mockResolvedValueOnce({ val: () => ({ status: 'called' }) });
-    update.mockResolvedValue({});
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'called' }) });
+    mockUpdate.mockResolvedValue({});
 
     await markAttendingHandler(db, 'evt-1', 'c1', 1);
 
-    expect(update).toHaveBeenCalledWith(
+    expect(mockUpdate).toHaveBeenCalledWith(
       'queue/evt-1/c1',
       expect.objectContaining({ status: 'attending', 'timestamps/attending_at': expect.any(Number) })
     );
@@ -144,23 +187,26 @@ describe('markAttendingHandler', () => {
 
 describe('markAbsentHandler', () => {
   it('throws when client does not exist', async () => {
-    get.mockResolvedValueOnce({ val: () => null });
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => null });
     await expect(markAbsentHandler(db, 'evt-1', 'c1', 1)).rejects.toThrow(/no encontrado/);
   });
 
   it('throws on invalid transition (e.g. attending -> absent)', async () => {
-    get.mockResolvedValueOnce({ val: () => ({ status: 'attending' }) });
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'attending' }) });
     await expect(markAbsentHandler(db, 'evt-1', 'c1', 1)).rejects.toThrow();
   });
 
   it('sets client absent and frees the chair atomically', async () => {
-    get.mockResolvedValueOnce({ val: () => ({ status: 'called' }) });
-    update.mockResolvedValue({});
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'called' }) });
+    mockUpdate.mockResolvedValue({});
 
     await markAbsentHandler(db, 'evt-1', 'c1', 1);
 
-    expect(update).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(mockUpdate).toHaveBeenCalledWith(
+      '/',
       expect.objectContaining({
         'queue/evt-1/c1/status': 'absent',
         'events/evt-1/chairs/1/status': 'available',
@@ -174,23 +220,26 @@ describe('markAbsentHandler', () => {
 
 describe('markFinishedHandler', () => {
   it('throws when client does not exist', async () => {
-    get.mockResolvedValueOnce({ val: () => null });
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => null });
     await expect(markFinishedHandler(db, 'evt-1', 'c1', 1)).rejects.toThrow(/no encontrado/);
   });
 
   it('throws on invalid transition (e.g. called -> finished)', async () => {
-    get.mockResolvedValueOnce({ val: () => ({ status: 'called' }) });
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'called' }) });
     await expect(markFinishedHandler(db, 'evt-1', 'c1', 1)).rejects.toThrow();
   });
 
   it('sets client finished and frees the chair atomically', async () => {
-    get.mockResolvedValueOnce({ val: () => ({ status: 'attending' }) });
-    update.mockResolvedValue({});
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'attending' }) });
+    mockUpdate.mockResolvedValue({});
 
     await markFinishedHandler(db, 'evt-1', 'c1', 1);
 
-    expect(update).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(mockUpdate).toHaveBeenCalledWith(
+      '/',
       expect.objectContaining({
         'queue/evt-1/c1/status': 'finished',
         'events/evt-1/chairs/1/status': 'available',

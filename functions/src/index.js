@@ -2,6 +2,7 @@ const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { callNextClientHandler, markAttendingHandler, markAbsentHandler, markFinishedHandler } = require('./transitions');
+const { sendRegistrationConfirmation } = require('./notifications');
 
 const app = initializeApp();
 const db = getDatabase(app);
@@ -37,6 +38,14 @@ exports.markFinished = wrap(async (request) => {
   return markFinishedHandler(db, eventId, clientId, chairNumber);
 });
 
-// TODO(phase-5): sendRegistrationConfirmation — MSG 1
+exports.sendRegistrationConfirmation = wrap(async (request) => {
+  const { eventId, clientId } = request.data;
+  const snap = await db.ref(`queue/${eventId}/${clientId}`).get();
+  const client = snap.val();
+  if (!client) throw new HttpsError('not-found', 'Cliente no encontrado');
+  await sendRegistrationConfirmation(db, eventId, clientId, client);
+  return { success: true };
+});
+
 // TODO(phase-6): setEventStatus — inactive -> active -> closed
 // TODO(phase-7): reactivateClient — absent -> waiting (priority: true)

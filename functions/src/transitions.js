@@ -1,15 +1,15 @@
-const { ref, get, update, runTransaction } = require('firebase-admin/database');
 const { HttpsError } = require('firebase-functions/v2/https');
 const { validateTransition } = require('./stateMachine');
+const { sendChairReady } = require('./notifications');
 
 async function callNextClientHandler(db, eventId, chairNumber) {
-  const eventSnap = await get(ref(db, `events/${eventId}`));
+  const eventSnap = await db.ref(`events/${eventId}`).get();
   const event = eventSnap.val();
   if (!event || event.status !== 'active') {
     throw new HttpsError('failed-precondition', 'El evento no está activo');
   }
 
-  const queueSnap = await get(ref(db, `queue/${eventId}`));
+  const queueSnap = await db.ref(`queue/${eventId}`).get();
   const queueData = queueSnap.val() || {};
   const waitingClients = Object.entries(queueData)
     .map(([id, c]) => ({ id, ...c }))
@@ -24,8 +24,7 @@ async function callNextClientHandler(db, eventId, chairNumber) {
   }
 
   const nextClient = waitingClients[0];
-  const chairRef = ref(db, `events/${eventId}/chairs/${chairNumber}`);
-  const result = await runTransaction(chairRef, (chair) => {
+  const result = await db.ref(`events/${eventId}/chairs/${chairNumber}`).transaction((chair) => {
     if (chair && chair.status === 'occupied') return;
     return { status: 'occupied', current_client_id: nextClient.id };
   });
@@ -35,21 +34,23 @@ async function callNextClientHandler(db, eventId, chairNumber) {
   }
 
   validateTransition(nextClient.status, 'called');
-  await update(ref(db, `queue/${eventId}/${nextClient.id}`), {
+  await db.ref(`queue/${eventId}/${nextClient.id}`).update({
     status: 'called',
     'timestamps/called_at': Date.now(),
   });
 
+  await sendChairReady(db, eventId, nextClient.id, nextClient, chairNumber);
+
   return { clientId: nextClient.id };
 }
 
-async function markAttendingHandler(db, eventId, clientId, chairNumber) {
-  const snap = await get(ref(db, `queue/${eventId}/${clientId}`));
+async function markAttendingHandler(db, eventId, clientId) {
+  const snap = await db.ref(`queue/${eventId}/${clientId}`).get();
   const client = snap.val();
   if (!client) throw new HttpsError('not-found', 'Cliente no encontrado');
 
   validateTransition(client.status, 'attending');
-  await update(ref(db, `queue/${eventId}/${clientId}`), {
+  await db.ref(`queue/${eventId}/${clientId}`).update({
     status: 'attending',
     'timestamps/attending_at': Date.now(),
   });
@@ -58,37 +59,33 @@ async function markAttendingHandler(db, eventId, clientId, chairNumber) {
 }
 
 async function markAbsentHandler(db, eventId, clientId, chairNumber) {
-  const snap = await get(ref(db, `queue/${eventId}/${clientId}`));
+  const snap = await db.ref(`queue/${eventId}/${clientId}`).get();
   const client = snap.val();
   if (!client) throw new HttpsError('not-found', 'Cliente no encontrado');
 
   validateTransition(client.status, 'absent');
-
-  const updates = {
+  await db.ref('/').update({
     [`queue/${eventId}/${clientId}/status`]: 'absent',
     [`queue/${eventId}/${clientId}/timestamps/absent_at`]: Date.now(),
     [`events/${eventId}/chairs/${chairNumber}/status`]: 'available',
     [`events/${eventId}/chairs/${chairNumber}/current_client_id`]: null,
-  };
-  await update(ref(db), updates);
+  });
 
   return { success: true };
 }
 
 async function markFinishedHandler(db, eventId, clientId, chairNumber) {
-  const snap = await get(ref(db, `queue/${eventId}/${clientId}`));
+  const snap = await db.ref(`queue/${eventId}/${clientId}`).get();
   const client = snap.val();
   if (!client) throw new HttpsError('not-found', 'Cliente no encontrado');
 
   validateTransition(client.status, 'finished');
-
-  const updates = {
+  await db.ref('/').update({
     [`queue/${eventId}/${clientId}/status`]: 'finished',
     [`queue/${eventId}/${clientId}/timestamps/finished_at`]: Date.now(),
     [`events/${eventId}/chairs/${chairNumber}/status`]: 'available',
     [`events/${eventId}/chairs/${chairNumber}/current_client_id`]: null,
-  };
-  await update(ref(db), updates);
+  });
 
   return { success: true };
 }

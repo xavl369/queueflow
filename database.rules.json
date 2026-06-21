@@ -3,7 +3,10 @@
     "events": {
       "$eventId": {
         ".read": true,
-        ".write": "auth != null"
+        ".write": "auth != null",
+        "turn_counter": {
+          ".write": "root.child('events').child($eventId).child('status').val() === 'active'"
+        }
       }
     },
     "queue": {

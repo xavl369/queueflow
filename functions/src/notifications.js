@@ -21,4 +21,40 @@ async function sendMessage(phone, message) {
   return getTwilioClient().messages.create(messageParams);
 }
 
-module.exports = { formatPhone, sendMessage };
+async function sendChairReady(db, eventId, clientId, client, chairNumber) {
+  const message = `¡Hola ${client.name}! 💫 Tu Silla ${chairNumber} en Glitter Bar está lista. Tienes 3 minutos para presentarte. ¡Te esperamos! ✨`;
+  try {
+    await sendMessage(client.phone, message);
+    await db.ref(`logs/${eventId}/messages/${clientId}`).update({
+      chair_ready_sent_at: Date.now(),
+      status: 'delivered',
+    });
+  } catch (err) {
+    console.error(`Twilio failed for client ${clientId}:`, err.message);
+    await db.ref(`logs/${eventId}/messages/${clientId}`).update({
+      chair_ready_sent_at: Date.now(),
+      status: 'failed',
+      error: err.message,
+    });
+  }
+}
+
+async function sendRegistrationConfirmation(db, eventId, clientId, client) {
+  const message = `¡Hola ${client.name}! 🌟 Tu registro en Glitter Bar fue confirmado. Eres el número ${client.turn_number} en la fila. ¡Te avisaremos cuando tu silla esté lista! ✨`;
+  try {
+    await sendMessage(client.phone, message);
+    await db.ref(`logs/${eventId}/messages/${clientId}`).update({
+      registration_sent_at: Date.now(),
+      status: 'delivered',
+    });
+  } catch (err) {
+    console.error(`Registration confirmation failed for client ${clientId}:`, err.message);
+    await db.ref(`logs/${eventId}/messages/${clientId}`).update({
+      registration_sent_at: Date.now(),
+      status: 'failed',
+      error: err.message,
+    });
+  }
+}
+
+module.exports = { formatPhone, sendMessage, sendChairReady, sendRegistrationConfirmation };
