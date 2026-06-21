@@ -13,6 +13,7 @@ const callNextClientFn  = httpsCallable(functions, 'callNextClient');
 const markAttendingFn   = httpsCallable(functions, 'markAttending');
 const markAbsentFn      = httpsCallable(functions, 'markAbsent');
 const markFinishedFn    = httpsCallable(functions, 'markFinished');
+const setEventStatusFn  = httpsCallable(functions, 'setEventStatus');
 
 export default function AdminPanel() {
   const { eventId } = useParams();
@@ -49,6 +50,14 @@ export default function AdminPanel() {
   const waitingClients = clients.filter(c => c.status === 'waiting');
   const absentClients  = clients.filter(c => c.status === 'absent');
 
+  async function handleStatusChange(newStatus) {
+    try {
+      await setEventStatusFn({ eventId, newStatus });
+    } catch (err) {
+      console.error('Event status change failed:', err.message);
+    }
+  }
+
   const makeCallbacks = (chairNumber) => ({
     onCallNext:       () => callNextClientFn({ eventId, chairNumber }),
     onMarkAttending:  (clientId) => markAttendingFn({ eventId, clientId, chairNumber }),
@@ -58,7 +67,7 @@ export default function AdminPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <EventToggleBar event={event} />
+      <EventToggleBar event={event} onStatusChange={handleStatusChange} />
       <div style={{ display: 'flex', flex: '0 0 auto', padding: '0 4px' }}>
         <ChairCard chairNumber={1} chairData={event.chairs?.['1']} clients={clients}
           eventStatus={event.status} waitingClients={waitingClients} {...makeCallbacks(1)} />
