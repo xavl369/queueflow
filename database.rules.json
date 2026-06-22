@@ -13,7 +13,28 @@
       "$eventId": {
         ".read": "auth != null",
         "$clientId": {
-          ".write": "root.child('events').child($eventId).child('status').val() === 'active'"
+          ".write": "!data.exists() && root.child('events').child($eventId).child('status').val() === 'active'",
+          ".validate": "newData.hasChildren(['name', 'phone', 'status', 'turn_number', 'timestamps'])",
+          "name": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+          },
+          "phone": {
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{10}$/)"
+          },
+          "status": {
+            ".validate": "newData.val() === 'waiting'"
+          },
+          "priority": {
+            ".validate": "newData.val() === false"
+          },
+          "turn_number": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "timestamps": {
+            "registered_at": {
+              ".validate": "newData.isNumber()"
+            }
+          }
         }
       }
     },
