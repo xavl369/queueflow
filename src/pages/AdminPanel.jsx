@@ -9,11 +9,12 @@ import WaitingList from '../components/WaitingList.jsx';
 import AbsentList from '../components/AbsentList.jsx';
 import LiveCounterBar from '../components/LiveCounterBar.jsx';
 
-const callNextClientFn  = httpsCallable(functions, 'callNextClient');
-const markAttendingFn   = httpsCallable(functions, 'markAttending');
-const markAbsentFn      = httpsCallable(functions, 'markAbsent');
-const markFinishedFn    = httpsCallable(functions, 'markFinished');
-const setEventStatusFn  = httpsCallable(functions, 'setEventStatus');
+const callNextClientFn    = httpsCallable(functions, 'callNextClient');
+const markAttendingFn     = httpsCallable(functions, 'markAttending');
+const markAbsentFn        = httpsCallable(functions, 'markAbsent');
+const markFinishedFn      = httpsCallable(functions, 'markFinished');
+const setEventStatusFn    = httpsCallable(functions, 'setEventStatus');
+const reactivateClientFn  = httpsCallable(functions, 'reactivateClient');
 
 export default function AdminPanel() {
   const { eventId } = useParams();
@@ -76,7 +77,10 @@ export default function AdminPanel() {
       </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <WaitingList clients={waitingClients} />
-        <AbsentList clients={absentClients} />
+        <AbsentList
+          clients={absentClients}
+          onReactivate={(clientId) => reactivateClientFn({ eventId, clientId })}
+        />
       </div>
       <LiveCounterBar clients={clients} />
     </div>

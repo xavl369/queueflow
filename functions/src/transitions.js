@@ -1,6 +1,6 @@
 const { HttpsError } = require('firebase-functions/v2/https');
 const { validateTransition } = require('./stateMachine');
-const { sendChairReady } = require('./notifications');
+const { sendChairReady, sendReactivation } = require('./notifications');
 
 async function callNextClientHandler(db, eventId, chairNumber) {
   const eventSnap = await db.ref(`events/${eventId}`).get();
@@ -90,4 +90,21 @@ async function markFinishedHandler(db, eventId, clientId, chairNumber) {
   return { success: true };
 }
 
-module.exports = { callNextClientHandler, markAttendingHandler, markAbsentHandler, markFinishedHandler };
+async function reactivateClientHandler(db, eventId, clientId) {
+  const snap = await db.ref(`queue/${eventId}/${clientId}`).get();
+  const client = snap.val();
+  if (!client) throw new HttpsError('not-found', 'Cliente no encontrado');
+
+  validateTransition(client.status, 'waiting');
+  await db.ref(`queue/${eventId}/${clientId}`).update({
+    status: 'waiting',
+    priority: true,
+    'timestamps/reactivated_at': Date.now(),
+  });
+
+  await sendReactivation(db, eventId, clientId, client);
+
+  return { success: true };
+}
+
+module.exports = { callNextClientHandler, markAttendingHandler, markAbsentHandler, markFinishedHandler, reactivateClientHandler };

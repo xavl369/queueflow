@@ -7,6 +7,7 @@ jest.mock('firebase-functions/v2/https', () => ({
 jest.mock('./notifications', () => ({
   sendChairReady: jest.fn().mockResolvedValue(undefined),
   sendRegistrationConfirmation: jest.fn().mockResolvedValue(undefined),
+  sendReactivation: jest.fn().mockResolvedValue(undefined),
 }));
 
 const {
@@ -14,6 +15,7 @@ const {
   markAttendingHandler,
   markAbsentHandler,
   markFinishedHandler,
+  reactivateClientHandler,
 } = require('./transitions');
 
 // ─── mock db factory ──────────────────────────────────────────────────────────
@@ -245,6 +247,62 @@ describe('markFinishedHandler', () => {
         'events/evt-1/chairs/1/status': 'available',
         'events/evt-1/chairs/1/current_client_id': null,
       })
+    );
+  });
+});
+
+// ─── reactivateClient ──────────────────────────────────────────────────────────
+
+describe('reactivateClientHandler', () => {
+  it('throws when client does not exist', async () => {
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => null });
+    await expect(reactivateClientHandler(db, 'evt-1', 'c1')).rejects.toThrow(/no encontrado/);
+  });
+
+  it('throws on invalid transition (e.g. waiting -> waiting)', async () => {
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'waiting' }) });
+    await expect(reactivateClientHandler(db, 'evt-1', 'c1')).rejects.toThrow();
+  });
+
+  it('throws on invalid transition (e.g. finished -> waiting)', async () => {
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'finished' }) });
+    await expect(reactivateClientHandler(db, 'evt-1', 'c1')).rejects.toThrow();
+  });
+
+  it('sets status to waiting with priority true and reactivated_at timestamp', async () => {
+    const db = createDb();
+    mockGet.mockResolvedValueOnce({ val: () => ({ status: 'absent', name: 'Ana', phone: '6621234567' }) });
+    mockUpdate.mockResolvedValue({});
+
+    await reactivateClientHandler(db, 'evt-1', 'c1');
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      'queue/evt-1/c1',
+      expect.objectContaining({
+        status: 'waiting',
+        priority: true,
+        'timestamps/reactivated_at': expect.any(Number),
+      })
+    );
+  });
+
+  it('calls sendReactivation with correct args after state change', async () => {
+    const { sendReactivation } = require('./notifications');
+    const db = createDb();
+    const client = { status: 'absent', name: 'Ana', phone: '6621234567' };
+    mockGet.mockResolvedValueOnce({ val: () => client });
+    mockUpdate.mockResolvedValue({});
+
+    await reactivateClientHandler(db, 'evt-1', 'c1');
+
+    expect(sendReactivation).toHaveBeenCalledWith(
+      db,
+      'evt-1',
+      'c1',
+      expect.objectContaining({ name: 'Ana', phone: '6621234567' })
     );
   });
 });

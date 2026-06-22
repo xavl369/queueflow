@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function AbsentList({ clients }) {
+export default function AbsentList({ clients, onReactivate }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -29,14 +29,29 @@ export default function AbsentList({ clients }) {
         <ul style={{ listStyle: 'none', margin: '4px 0 0', padding: 0 }}>
           {clients.map(client => (
             <li key={client.id} style={{
-              padding: '12px 8px',
+              padding: '10px 8px',
               borderBottom: '1px solid #eee',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
             }}>
-              <span style={{ color: '#999' }}>#{client.turn_number}</span>
-              <span>{client.name}</span>
+              <span style={{ color: '#999', minWidth: '32px' }}>#{client.turn_number}</span>
+              <span style={{ flex: 1, fontWeight: '500' }}>{client.name}</span>
+              <button
+                onClick={() => onReactivate(client.id)}
+                style={{
+                  padding: '6px 12px',
+                  background: '#FFD700',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  minHeight: '36px',
+                }}
+              >
+                REACTIVAR
+              </button>
             </li>
           ))}
         </ul>

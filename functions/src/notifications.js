@@ -57,4 +57,22 @@ async function sendRegistrationConfirmation(db, eventId, clientId, client) {
   }
 }
 
-module.exports = { formatPhone, sendMessage, sendChairReady, sendRegistrationConfirmation };
+async function sendReactivation(db, eventId, clientId, client) {
+  const message = `¡Hola ${client.name}! ⭐ Has sido reactivado en la fila de Glitter Bar. ¡Te esperamos pronto! ✨`;
+  try {
+    await sendMessage(client.phone, message);
+    await db.ref(`logs/${eventId}/messages/${clientId}`).update({
+      reactivation_sent_at: Date.now(),
+      status: 'delivered',
+    });
+  } catch (err) {
+    console.error(`Reactivation notification failed for client ${clientId}:`, err.message);
+    await db.ref(`logs/${eventId}/messages/${clientId}`).update({
+      reactivation_sent_at: Date.now(),
+      status: 'failed',
+      error: err.message,
+    });
+  }
+}
+
+module.exports = { formatPhone, sendMessage, sendChairReady, sendRegistrationConfirmation, sendReactivation };

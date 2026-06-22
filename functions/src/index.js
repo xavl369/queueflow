@@ -1,7 +1,7 @@
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
-const { callNextClientHandler, markAttendingHandler, markAbsentHandler, markFinishedHandler } = require('./transitions');
+const { callNextClientHandler, markAttendingHandler, markAbsentHandler, markFinishedHandler, reactivateClientHandler } = require('./transitions');
 const { setEventStatusHandler } = require('./eventToggle');
 const { sendRegistrationConfirmation } = require('./notifications');
 
@@ -53,4 +53,7 @@ exports.setEventStatus = wrap(async (request) => {
   return setEventStatusHandler(db, eventId, newStatus);
 });
 
-// TODO(phase-7): reactivateClient — absent -> waiting (priority: true)
+exports.reactivateClient = wrap(async (request) => {
+  const { eventId, clientId } = request.data;
+  return reactivateClientHandler(db, eventId, clientId);
+});
