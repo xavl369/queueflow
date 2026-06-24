@@ -53,6 +53,16 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/database', 'firebase/functions'],
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

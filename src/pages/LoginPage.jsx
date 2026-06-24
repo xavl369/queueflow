@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../config/firebase.js';
+import { ref, get } from 'firebase/database';
+import { auth, db } from '../config/firebase.js';
 
 const COLORS = { brand: '#FF69B4', alert: '#F44336' };
 
@@ -22,15 +23,29 @@ export default function LoginPage() {
     setError(null);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      if (from) {
-        navigate(from, { replace: true });
-      } else if (import.meta.env.VITE_USE_EMULATOR === 'true') {
-        setLoggedIn(true);
+    } catch (err) {
+      console.error('Login error:', err.code || err.message);
+      setError('Credenciales incorrectas. Intenta de nuevo.');
+      setLoading(false);
+      return;
+    }
+
+    // Sign-in succeeded — navigate to original destination or find the first event
+    if (from) {
+      navigate(from, { replace: true });
+      return;
+    }
+    try {
+      const snap = await get(ref(db, 'events'));
+      const events = snap.val() || {};
+      const eventId = Object.keys(events)[0];
+      if (eventId) {
+        navigate(`/admin/${eventId}`, { replace: true });
       } else {
-        navigate('/admin', { replace: true });
+        setLoggedIn(true);
       }
     } catch {
-      setError('Credenciales incorrectas. Intenta de nuevo.');
+      setLoggedIn(true);
     } finally {
       setLoading(false);
     }
@@ -43,10 +58,7 @@ export default function LoginPage() {
       <div style={{ padding: '24px', maxWidth: '400px', margin: '0 auto' }}>
         <h1 style={{ color: COLORS.brand }}>Glitter Bar ✨</h1>
         <p style={{ color: '#4CAF50', fontWeight: 'bold' }}>Sesión iniciada correctamente.</p>
-        <p style={{ color: '#666' }}>Ir al panel de administración:</p>
-        <Link to="/admin/test-evt" style={{ color: COLORS.brand, fontSize: '16px', fontWeight: 'bold' }}>
-          /admin/test-evt
-        </Link>
+        <p style={{ color: '#666' }}>No hay eventos creados todavía. Crea un evento en la consola de Firebase y navega a <code>/admin/EVENT_ID</code>.</p>
       </div>
     );
   }

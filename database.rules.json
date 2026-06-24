@@ -1,6 +1,7 @@
 {
   "rules": {
     "events": {
+      ".read": true,
       "$eventId": {
         ".read": true,
         ".write": "auth != null",
