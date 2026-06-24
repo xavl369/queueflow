@@ -1,7 +1,6 @@
 const { initializeApp } = require('firebase-admin/app');
 const { getDatabase } = require('firebase-admin/database');
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
-const { defineSecret } = require('firebase-functions/params');
+const functions = require('firebase-functions');
 const { callNextClientHandler, markAttendingHandler, markAbsentHandler, markFinishedHandler, reactivateClientHandler } = require('./transitions');
 const { setEventStatusHandler } = require('./eventToggle');
 const { sendRegistrationConfirmation } = require('./notifications');
@@ -9,59 +8,57 @@ const { sendRegistrationConfirmation } = require('./notifications');
 const app = initializeApp();
 const db = getDatabase(app);
 
-const TWILIO_SID   = defineSecret('TWILIO_ACCOUNT_SID');
-const TWILIO_TOKEN = defineSecret('TWILIO_AUTH_TOKEN');
-const TWILIO_PHONE = defineSecret('TWILIO_PHONE_NUMBER');
-const USE_WHATSAPP = defineSecret('USE_WHATSAPP');
-
-const twilioSecrets = [TWILIO_SID, TWILIO_TOKEN, TWILIO_PHONE, USE_WHATSAPP];
+const twilioSecrets = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER', 'USE_WHATSAPP'];
 
 function wrap(handler, secrets = []) {
-  return onCall({ secrets }, async (request) => {
+  const opts = secrets.length > 0 ? { secrets } : {};
+  return functions.runWith(opts).https.onCall(async (data) => {
     try {
-      return await handler(request);
+      return await handler(data);
     } catch (err) {
-      if (err instanceof HttpsError) throw err;
-      throw new HttpsError('internal', err.message);
+      // Re-throw as v1 HttpsError so the framework serializes it correctly
+      const validCodes = ['cancelled','unknown','invalid-argument','deadline-exceeded','not-found','already-exists','permission-denied','resource-exhausted','failed-precondition','aborted','out-of-range','unimplemented','internal','unavailable','data-loss','unauthenticated'];
+      const code = validCodes.includes(err.code) ? err.code : 'internal';
+      throw new functions.https.HttpsError(code, err.message);
     }
   });
 }
 
-exports.callNextClient = wrap(async (request) => {
-  const { eventId, chairNumber } = request.data;
+exports.callNextClient = wrap(async (data) => {
+  const { eventId, chairNumber } = data;
   return callNextClientHandler(db, eventId, chairNumber);
 }, twilioSecrets);
 
-exports.markAttending = wrap(async (request) => {
-  const { eventId, clientId } = request.data;
+exports.markAttending = wrap(async (data) => {
+  const { eventId, clientId } = data;
   return markAttendingHandler(db, eventId, clientId);
 });
 
-exports.markAbsent = wrap(async (request) => {
-  const { eventId, clientId, chairNumber } = request.data;
+exports.markAbsent = wrap(async (data) => {
+  const { eventId, clientId, chairNumber } = data;
   return markAbsentHandler(db, eventId, clientId, chairNumber);
 });
 
-exports.markFinished = wrap(async (request) => {
-  const { eventId, clientId, chairNumber } = request.data;
+exports.markFinished = wrap(async (data) => {
+  const { eventId, clientId, chairNumber } = data;
   return markFinishedHandler(db, eventId, clientId, chairNumber);
 });
 
-exports.sendRegistrationConfirmation = wrap(async (request) => {
-  const { eventId, clientId } = request.data;
+exports.sendRegistrationConfirmation = wrap(async (data) => {
+  const { eventId, clientId } = data;
   const snap = await db.ref(`queue/${eventId}/${clientId}`).get();
   const client = snap.val();
-  if (!client) throw new HttpsError('not-found', 'Cliente no encontrado');
+  if (!client) throw new functions.https.HttpsError('not-found', 'Cliente no encontrado');
   await sendRegistrationConfirmation(db, eventId, clientId, client);
   return { success: true };
 }, twilioSecrets);
 
-exports.setEventStatus = wrap(async (request) => {
-  const { eventId, newStatus } = request.data;
+exports.setEventStatus = wrap(async (data) => {
+  const { eventId, newStatus } = data;
   return setEventStatusHandler(db, eventId, newStatus);
 });
 
-exports.reactivateClient = wrap(async (request) => {
-  const { eventId, clientId } = request.data;
+exports.reactivateClient = wrap(async (data) => {
+  const { eventId, clientId } = data;
   return reactivateClientHandler(db, eventId, clientId);
 }, twilioSecrets);

@@ -6,7 +6,7 @@ const STATUS_LABELS = {
   closed:   { text: 'CERRADO',  bg: '#F44336' },
 };
 
-export default function EventToggleBar({ event, onStatusChange }) {
+export default function EventToggleBar({ event, onStatusChange, onLogout }) {
   const [confirming, setConfirming] = useState(false);
   const badge = STATUS_LABELS[event?.status] ?? STATUS_LABELS.inactive;
 
@@ -33,7 +33,29 @@ export default function EventToggleBar({ event, onStatusChange }) {
       color: '#fff',
       flexShrink: 0,
     }}>
-      <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{event?.name}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            aria-label="Cerrar sesión"
+            style={{
+              background: '#333',
+              color: '#fff',
+              border: '1px solid #666',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              minHeight: '36px',
+            }}
+          >
+            Salir
+          </button>
+        )}
+        <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{event?.name}</span>
+      </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{

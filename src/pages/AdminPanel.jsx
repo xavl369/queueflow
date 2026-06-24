@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ref, onValue } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../config/firebase.js';
+import { signOut } from 'firebase/auth';
+import { db, functions, auth } from '../config/firebase.js';
 import EventToggleBar from '../components/EventToggleBar.jsx';
 import ChairCard from '../components/ChairCard.jsx';
 import WaitingList from '../components/WaitingList.jsx';
@@ -18,6 +19,7 @@ const reactivateClientFn  = httpsCallable(functions, 'reactivateClient');
 
 export default function AdminPanel() {
   const { eventId } = useParams();
+  const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,11 @@ export default function AdminPanel() {
   const waitingClients = clients.filter(c => c.status === 'waiting');
   const absentClients  = clients.filter(c => c.status === 'absent');
 
+  async function handleLogout() {
+    await signOut(auth);
+    navigate('/login', { replace: true });
+  }
+
   async function handleStatusChange(newStatus) {
     try {
       await setEventStatusFn({ eventId, newStatus });
@@ -68,7 +75,7 @@ export default function AdminPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      <EventToggleBar event={event} onStatusChange={handleStatusChange} />
+      <EventToggleBar event={event} onStatusChange={handleStatusChange} onLogout={handleLogout} />
       <div style={{ display: 'flex', flex: '0 0 auto', padding: '0 4px' }}>
         <ChairCard chairNumber={1} chairData={event.chairs?.['1']} clients={clients}
           eventStatus={event.status} waitingClients={waitingClients} {...makeCallbacks(1)} />
