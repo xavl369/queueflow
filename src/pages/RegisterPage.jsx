@@ -238,6 +238,9 @@ export default function RegisterPage() {
           >
             {submitting ? 'Registrando...' : 'Registrarme'}
           </button>
+          <p style={{ margin: 0, fontSize: '0.75rem', color: C.muted, textAlign: 'center', lineHeight: 1.5 }}>
+            Al registrarte aceptas que tus datos sean usados únicamente para notificarte sobre tu turno. Tus datos no se comparten con terceros.
+          </p>
         </form>
 
         <SocialFooter />
