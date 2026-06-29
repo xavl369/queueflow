@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { isCallButtonDisabled } from '../utils/isCallButtonDisabled.js';
 
-const COLORS = {
-  available: '#9E9E9E',
+const STATUS_BG = {
+  available: '#f5f5f5',
+  called:    '#fffbea',
+  attending: '#f0fff0',
+};
+
+const STATUS_ACCENT = {
+  available: '#555',
   called:    '#FFC107',
   attending: '#4CAF50',
 };
@@ -19,10 +25,10 @@ const BTN = {
     flex: 1,
     color: '#fff',
   },
-  green:  { background: '#388E3C' },
-  amber:  { background: '#F57F17' },
-  red:    { background: '#C62828' },
-  gray:   { background: 'rgba(0,0,0,0.25)', cursor: 'not-allowed' },
+  green:  { background: '#2e7d32' },
+  amber:  { background: '#e65100' },
+  red:    { background: '#b71c1c' },
+  gray:   { background: 'rgba(0,0,0,0.06)', cursor: 'not-allowed', color: 'rgba(0,0,0,0.3)' },
 };
 
 function ActionButton({ label, onClick, style, disabled }) {
@@ -55,9 +61,9 @@ export default function ChairCard({
   const currentClientId = chairData?.current_client_id ?? null;
   const currentClient = currentClientId ? clients.find(c => c.id === currentClientId) : null;
 
-  const cardColor = status === 'available'
-    ? COLORS.available
-    : COLORS[currentClient?.status] ?? COLORS.called;
+  const clientStatus = currentClient?.status ?? 'called';
+  const bg     = status === 'available' ? STATUS_BG.available : (STATUS_BG[clientStatus] ?? STATUS_BG.called);
+  const accent = status === 'available' ? STATUS_ACCENT.available : (STATUS_ACCENT[clientStatus] ?? STATUS_ACCENT.called);
 
   async function runAction(fn) {
     setLoading(true);
@@ -76,30 +82,32 @@ export default function ChairCard({
   return (
     <div style={{
       flex: 1,
-      margin: '8px',
-      padding: '16px',
+      margin: '6px',
+      padding: '14px',
       borderRadius: '12px',
-      background: cardColor,
-      color: '#fff',
+      background: bg,
+      border: `1px solid ${accent}44`,
+      color: '#111',
       minHeight: '80px',
       display: 'flex',
       flexDirection: 'column',
       gap: '8px',
     }}>
-      <span style={{ fontWeight: 'bold', fontSize: '14px' }}>Silla {chairNumber}</span>
+      <span style={{ fontWeight: 'bold', fontSize: '13px', color: accent, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        Silla {chairNumber}
+      </span>
 
       {status === 'available'
-        ? <span style={{ fontSize: '13px' }}>Disponible</span>
-        : <span style={{ fontSize: '15px', fontWeight: 'bold' }}>{currentClient?.name ?? '—'}</span>
+        ? <span style={{ fontSize: '13px', color: 'rgba(0,0,0,0.35)' }}>Disponible</span>
+        : <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#111' }}>{currentClient?.name ?? '—'}</span>
       }
 
       {error && (
-        <span style={{ fontSize: '12px', color: '#FFCDD2', fontWeight: 'bold' }}>
-          Error: {error}
+        <span style={{ fontSize: '12px', color: '#ef9a9a', fontWeight: 'bold' }}>
+          {error}
         </span>
       )}
 
-      {/* LLAMAR — shown when chair is available */}
       {status === 'available' && onCallNext && (
         <ActionButton
           label={loading ? 'Llamando...' : 'Llamar'}
@@ -109,7 +117,6 @@ export default function ChairCard({
         />
       )}
 
-      {/* LLEGO / NO VINO — shown when current client is called */}
       {status === 'occupied' && currentClient?.status === 'called' && (
         <div style={{ display: 'flex', gap: '8px' }}>
           {onMarkAttending && (
@@ -131,7 +138,6 @@ export default function ChairCard({
         </div>
       )}
 
-      {/* FINALIZADO — shown when current client is attending */}
       {status === 'occupied' && currentClient?.status === 'attending' && onMarkFinished && (
         <ActionButton
           label={loading ? '...' : 'Finalizado'}

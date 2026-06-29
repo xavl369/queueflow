@@ -1,36 +1,38 @@
 import { useState } from 'react';
 
+const C = { pink: '#FF69B4', gold: '#FFD700' };
+
 const STATUS_LABELS = {
-  active:   { text: 'ABIERTO',  bg: '#4CAF50' },
-  inactive: { text: 'INACTIVO', bg: '#9E9E9E' },
-  closed:   { text: 'CERRADO',  bg: '#F44336' },
+  active:   { text: 'ABIERTO',  bg: '#1a5c1a', color: '#4CAF50' },
+  inactive: { text: 'INACTIVO', bg: '#2a2a2a', color: '#888' },
+  closed:   { text: 'CERRADO',  bg: '#5c1a1a', color: '#F44336' },
 };
+
+const btnStyle = (bg, color = '#fff') => ({
+  background: bg,
+  color,
+  border: 'none',
+  borderRadius: '8px',
+  padding: '6px 14px',
+  fontWeight: 'bold',
+  fontSize: '13px',
+  cursor: 'pointer',
+  minHeight: '36px',
+  whiteSpace: 'nowrap',
+});
 
 export default function EventToggleBar({ event, onStatusChange, onLogout }) {
   const [confirming, setConfirming] = useState(false);
   const badge = STATUS_LABELS[event?.status] ?? STATUS_LABELS.inactive;
-
-  function handleCerrarClick() {
-    setConfirming(true);
-  }
-
-  function handleConfirm() {
-    setConfirming(false);
-    onStatusChange('closed');
-  }
-
-  function handleCancel() {
-    setConfirming(false);
-  }
 
   return (
     <div style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '12px 16px',
-      background: '#1a1a1a',
-      color: '#fff',
+      padding: '10px 14px',
+      background: '#fff',
+      borderBottom: `1px solid rgba(255,105,180,0.25)`,
       flexShrink: 0,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -38,103 +40,47 @@ export default function EventToggleBar({ event, onStatusChange, onLogout }) {
           <button
             onClick={onLogout}
             aria-label="Cerrar sesión"
-            style={{
-              background: '#333',
-              color: '#fff',
-              border: '1px solid #666',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              fontSize: '13px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              minHeight: '36px',
-            }}
+            style={btnStyle('#eee', '#333')}
           >
             Salir
           </button>
         )}
-        <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{event?.name}</span>
+        <span style={{ fontWeight: 'bold', fontSize: '15px', color: C.pink }}>
+          ✨ {event?.name}
+        </span>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{
           background: badge.bg,
-          color: '#fff',
+          color: badge.color,
           padding: '4px 10px',
           borderRadius: '12px',
-          fontSize: '12px',
+          fontSize: '11px',
           fontWeight: 'bold',
+          letterSpacing: '0.06em',
         }}>
           {badge.text}
         </span>
 
         {event?.status === 'inactive' && (
-          <button
-            onClick={() => onStatusChange('active')}
-            style={{
-              background: '#4CAF50',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '6px 14px',
-              fontWeight: 'bold',
-              fontSize: '13px',
-              cursor: 'pointer',
-            }}
-          >
+          <button onClick={() => onStatusChange('active')} style={btnStyle('#1a5c1a', '#4CAF50')}>
             ABRIR
           </button>
         )}
 
         {event?.status === 'active' && !confirming && (
-          <button
-            onClick={handleCerrarClick}
-            style={{
-              background: '#F44336',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '6px 14px',
-              fontWeight: 'bold',
-              fontSize: '13px',
-              cursor: 'pointer',
-            }}
-          >
+          <button onClick={() => setConfirming(true)} style={btnStyle('#5c1a1a', '#F44336')}>
             CERRAR
           </button>
         )}
 
         {confirming && (
           <>
-            <button
-              onClick={handleConfirm}
-              style={{
-                background: '#F44336',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '6px 14px',
-                fontWeight: 'bold',
-                fontSize: '13px',
-                cursor: 'pointer',
-              }}
-            >
+            <button onClick={() => { setConfirming(false); onStatusChange('closed'); }} style={btnStyle('#F44336')}>
               CONFIRMAR
             </button>
-            <button
-              onClick={handleCancel}
-              style={{
-                background: '#757575',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '6px 14px',
-                fontWeight: 'bold',
-                fontSize: '13px',
-                cursor: 'pointer',
-              }}
-            >
+            <button onClick={() => setConfirming(false)} style={btnStyle('#333')}>
               CANCELAR
             </button>
           </>

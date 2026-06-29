@@ -5,7 +5,7 @@ export default function WaitingList({ clients }) {
 
   if (sorted.length === 0) {
     return (
-      <div style={{ padding: '16px', color: '#999', textAlign: 'center' }}>
+      <div style={{ padding: '20px', color: 'rgba(255,255,255,0.3)', textAlign: 'center', fontSize: '14px' }}>
         Nadie en espera
       </div>
     );
@@ -19,21 +19,22 @@ export default function WaitingList({ clients }) {
           alignItems: 'center',
           gap: '12px',
           padding: '12px 8px',
-          borderBottom: '1px solid #eee',
+          borderBottom: '1px solid rgba(0,0,0,0.07)',
           minHeight: '48px',
         }}>
-          <span style={{ fontWeight: 'bold', color: '#555', minWidth: '32px' }}>
+          <span style={{ fontWeight: 'bold', color: '#FFD700', minWidth: '36px', fontSize: '14px' }}>
             {client.priority ? '#—' : `#${client.turn_number}`}
           </span>
-          <span style={{ flex: 1, fontWeight: '500' }}>{client.name}</span>
+          <span style={{ flex: 1, fontWeight: '500', color: '#111' }}>{client.name}</span>
           {client.priority && (
             <span style={{
               fontSize: '11px',
-              background: '#FFD700',
-              color: '#333',
-              padding: '2px 6px',
+              background: 'rgba(255,215,0,0.15)',
+              color: '#FFD700',
+              padding: '2px 8px',
               borderRadius: '8px',
               fontWeight: 'bold',
+              border: '1px solid rgba(255,215,0,0.3)',
             }}>
               ⭐ PRIORITARIA
             </span>

@@ -4,7 +4,26 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { ref, get } from 'firebase/database';
 import { auth, db } from '../config/firebase.js';
 
-const COLORS = { brand: '#FF69B4', alert: '#F44336' };
+const C = {
+  bg:      '#fff',
+  surface: '#f7f7f7',
+  pink:    '#FF69B4',
+  gold:    '#e6a800',
+  alert:   '#F44336',
+  muted:   'rgba(0,0,0,0.4)',
+  border:  'rgba(255,105,180,0.35)',
+};
+
+const INPUT_STYLE = {
+  fontSize: '16px',
+  padding: '14px',
+  width: '100%',
+  borderRadius: '10px',
+  border: `1px solid ${C.border}`,
+  background: C.surface,
+  color: '#111',
+  outline: 'none',
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -30,7 +49,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Sign-in succeeded — navigate to original destination or find the first event
     if (from) {
       navigate(from, { replace: true });
       return;
@@ -55,75 +73,95 @@ export default function LoginPage() {
 
   if (loggedIn) {
     return (
-      <div style={{ padding: '24px', maxWidth: '400px', margin: '0 auto' }}>
-        <h1 style={{ color: COLORS.brand }}>Glitter Bar ✨</h1>
-        <p style={{ color: '#4CAF50', fontWeight: 'bold' }}>Sesión iniciada correctamente.</p>
-        <p style={{ color: '#666' }}>No hay eventos creados todavía. Crea un evento en la consola de Firebase y navega a <code>/admin/EVENT_ID</code>.</p>
+      <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ padding: '32px 24px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
+          <h1 style={{ color: C.pink }}>Glitter Bar ✨</h1>
+          <p style={{ color: '#4CAF50', fontWeight: 'bold' }}>Sesión iniciada correctamente.</p>
+          <p style={{ color: C.muted, fontSize: '0.9rem' }}>
+            No hay eventos creados todavía. Crea un evento en la consola de Firebase y navega a{' '}
+            <code style={{ color: C.gold }}>/admin/EVENT_ID</code>.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '400px', margin: '0 auto' }}>
-      <h1 style={{ color: COLORS.brand }}>Glitter Bar ✨</h1>
-      <p style={{ color: '#666' }}>Panel de administración</p>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <input
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="Correo electrónico"
-          required
-          style={{ fontSize: '16px', padding: '14px', width: '100%', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #ccc' }}
-        />
-        <div style={{ position: 'relative' }}>
-          <input
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="Contraseña"
-            required
-            style={{ fontSize: '16px', padding: '14px', paddingRight: '48px', width: '100%', boxSizing: 'border-box', borderRadius: '8px', border: '1px solid #ccc' }}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(v => !v)}
-            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#888', lineHeight: 1 }}
-          >
-            {showPassword ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-            )}
-          </button>
+    <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ padding: '32px 24px', maxWidth: '400px', width: '100%' }}>
+
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ fontSize: '36px', marginBottom: '8px' }}>✨</div>
+          <h1 style={{ color: C.pink, fontSize: '1.8rem', margin: '0 0 4px' }}>Glitter Bar</h1>
+          <p style={{ color: C.muted, margin: 0, fontSize: '0.85rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            Panel de administración
+          </p>
         </div>
-        {error && <p style={{ color: COLORS.alert, margin: 0 }}>{error}</p>}
-        <button
-          type="submit"
-          disabled={isDisabled}
-          style={{
-            minHeight: '48px',
-            padding: '12px 24px',
-            width: '100%',
-            background: isDisabled ? '#ccc' : COLORS.brand,
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: isDisabled ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Entrando...' : 'Entrar'}
-        </button>
-      </form>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="Correo electrónico"
+            required
+            style={INPUT_STYLE}
+          />
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Contraseña"
+              required
+              style={{ ...INPUT_STYLE, paddingRight: '48px' }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              style={{
+                position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                color: C.muted, lineHeight: 1,
+              }}
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              )}
+            </button>
+          </div>
+          {error && <p style={{ color: C.alert, margin: 0, fontSize: '0.9rem' }}>{error}</p>}
+          <button
+            type="submit"
+            disabled={isDisabled}
+            style={{
+              minHeight: '52px',
+              padding: '12px 24px',
+              width: '100%',
+              background: isDisabled ? 'rgba(255,105,180,0.15)' : `linear-gradient(135deg, ${C.pink}, #e91e8c)`,
+              color: isDisabled ? 'rgba(255,105,180,0.5)' : '#fff',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: isDisabled ? 'not-allowed' : 'pointer',
+              letterSpacing: '0.04em',
+              boxShadow: isDisabled ? 'none' : `0 4px 20px ${C.pink}44`,
+            }}
+          >
+            {loading ? 'Entrando...' : 'Entrar'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
