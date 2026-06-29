@@ -1,6 +1,6 @@
 const { HttpsError } = require('firebase-functions/v2/https');
 const { validateTransition } = require('./stateMachine');
-const { sendChairReady, sendReactivation } = require('./notifications');
+const { sendChairReady, sendReactivation, sendFarewell } = require('./notifications');
 
 async function callNextClientHandler(db, eventId, chairNumber) {
   const eventSnap = await db.ref(`events/${eventId}`).get();
@@ -86,6 +86,8 @@ async function markFinishedHandler(db, eventId, clientId, chairNumber) {
     [`events/${eventId}/chairs/${chairNumber}/status`]: 'available',
     [`events/${eventId}/chairs/${chairNumber}/current_client_id`]: null,
   });
+
+  await sendFarewell(db, eventId, clientId, client);
 
   return { success: true };
 }

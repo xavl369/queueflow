@@ -75,4 +75,22 @@ async function sendReactivation(db, eventId, clientId, client) {
   }
 }
 
-module.exports = { formatPhone, sendMessage, sendChairReady, sendRegistrationConfirmation, sendReactivation };
+async function sendFarewell(db, eventId, clientId, client) {
+  const message = `✨ Gracias por brillar con nosotros ${client.name}. Te invitamos a etiquetarnos y compartir en redes sociales:\n\n📸 Instagram: https://www.instagram.com/glitterbarhmoofficial/\n📘 Facebook: https://www.facebook.com/profile.php?id=61579532096684\n▶️ YouTube: https://www.youtube.com/@GlitterBarHmoOfficial`;
+  try {
+    await sendMessage(client.phone, message);
+    await db.ref(`logs/${eventId}/messages/${clientId}`).update({
+      farewell_sent_at: Date.now(),
+      status: 'delivered',
+    });
+  } catch (err) {
+    console.error(`Farewell notification failed for client ${clientId}:`, err.message);
+    await db.ref(`logs/${eventId}/messages/${clientId}`).update({
+      farewell_sent_at: Date.now(),
+      status: 'failed',
+      error: err.message,
+    });
+  }
+}
+
+module.exports = { formatPhone, sendMessage, sendChairReady, sendRegistrationConfirmation, sendReactivation, sendFarewell };

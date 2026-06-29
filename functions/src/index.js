@@ -42,7 +42,7 @@ exports.markAbsent = wrap(async (data) => {
 exports.markFinished = wrap(async (data) => {
   const { eventId, clientId, chairNumber } = data;
   return markFinishedHandler(db, eventId, clientId, chairNumber);
-});
+}, twilioSecrets);
 
 exports.sendRegistrationConfirmation = wrap(async (data) => {
   const { eventId, clientId } = data;
