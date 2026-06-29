@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function AbsentList({ clients, onReactivate }) {
+export default function AbsentList({ clients, onReactivate, messageLogs = {} }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -40,6 +40,23 @@ export default function AbsentList({ clients, onReactivate }) {
                 #{client.turn_number}
               </span>
               <span style={{ flex: 1, fontWeight: '500', color: '#111' }}>{client.name}</span>
+              {messageLogs[client.id]?.status === 'delivered' && (
+                <span title="Mensaje enviado">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                  </svg>
+                </span>
+              )}
+              {messageLogs[client.id]?.status === 'failed' && (
+                <span title="Mensaje no enviado">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F44336" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                </span>
+              )}
               <button
                 onClick={() => onReactivate(client.id)}
                 style={{

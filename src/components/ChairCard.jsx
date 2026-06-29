@@ -49,6 +49,7 @@ export default function ChairCard({
   clients,
   eventStatus,
   waitingClients = [],
+  messageLogs = {},
   onCallNext,
   onMarkAttending,
   onMarkAbsent,
@@ -99,7 +100,28 @@ export default function ChairCard({
 
       {status === 'available'
         ? <span style={{ fontSize: '13px', color: 'rgba(0,0,0,0.35)' }}>Disponible</span>
-        : <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#111' }}>{currentClient?.name ?? '—'}</span>
+        : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#111' }}>{currentClient?.name ?? '—'}</span>
+            {messageLogs[currentClientId]?.status === 'delivered' && (
+              <span title="Mensaje enviado">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="9 12 11 14 15 10"/>
+                </svg>
+              </span>
+            )}
+            {messageLogs[currentClientId]?.status === 'failed' && (
+              <span title="Mensaje no enviado">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F44336" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/>
+                  <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+              </span>
+            )}
+          </div>
+        )
       }
 
       {error && (

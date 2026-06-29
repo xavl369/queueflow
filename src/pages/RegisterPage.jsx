@@ -97,7 +97,7 @@ function SuccessScreen({ turnNumber, name }) {
           #{turnNumber}
         </div>
         <p style={{ color: C.muted, fontSize: '0.95rem', lineHeight: 1.6 }}>
-          Tu número de turno. Te avisaremos por WhatsApp cuando tu silla esté lista.
+          Tu número de turno. Te avisaremos por mensaje de texto cuando tu silla esté lista.
         </p>
         <SocialFooter />
       </div>

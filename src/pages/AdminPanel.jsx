@@ -23,6 +23,7 @@ export default function AdminPanel() {
   const [event, setEvent] = useState(null);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [messageLogs, setMessageLogs] = useState({});
 
   useEffect(() => {
     const eventRef = ref(db, `events/${eventId}`);
@@ -44,6 +45,14 @@ export default function AdminPanel() {
       },
       (err) => console.error('Queue listener error:', err.message)
     );
+    return () => unsubscribe();
+  }, [eventId]);
+
+  useEffect(() => {
+    const logsRef = ref(db, `logs/${eventId}/messages`);
+    const unsubscribe = onValue(logsRef, (snapshot) => {
+      setMessageLogs(snapshot.val() || {});
+    });
     return () => unsubscribe();
   }, [eventId]);
 
@@ -78,15 +87,16 @@ export default function AdminPanel() {
       <EventToggleBar event={event} onStatusChange={handleStatusChange} onLogout={handleLogout} />
       <div style={{ display: 'flex', flex: '0 0 auto', padding: '0 4px' }}>
         <ChairCard chairNumber={1} chairData={event.chairs?.['1']} clients={clients}
-          eventStatus={event.status} waitingClients={waitingClients} {...makeCallbacks(1)} />
+          eventStatus={event.status} waitingClients={waitingClients} messageLogs={messageLogs} {...makeCallbacks(1)} />
         <ChairCard chairNumber={2} chairData={event.chairs?.['2']} clients={clients}
-          eventStatus={event.status} waitingClients={waitingClients} {...makeCallbacks(2)} />
+          eventStatus={event.status} waitingClients={waitingClients} messageLogs={messageLogs} {...makeCallbacks(2)} />
       </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <WaitingList clients={waitingClients} />
         <AbsentList
           clients={absentClients}
           onReactivate={(clientId) => reactivateClientFn({ eventId, clientId })}
+          messageLogs={messageLogs}
         />
       </div>
       <LiveCounterBar clients={clients} />
